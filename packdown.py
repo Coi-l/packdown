@@ -14,6 +14,31 @@ pstring = """!Packet 4B
 16B:S Options
 
 """
+tcp_string = """
+This is the TCP Packet header:
+
+!Packet 4B
+2B Source port | 2B Destination port
+4B Sequence number
+4B Acknowledgement number (if ACK set)
+3b Data offset | 3b Reserved\n __0__ __0__ __0__
+Packet!
+
+"""
+ip_string = """
+This is the IP Packet header:
+
+!Packet 4B
+4b Version | 4b IHL | 6b DSCP | 2b ECN | 2B Total Length
+2B Identification | 3b Flags | 13b Fragment Offset
+8b Time To Live | 8b Protocol | 2B Header Checksum
+4B __Source Address__
+4B Destination Address
+16B Options
+Packet!
+
+
+"""
 
 pstring1 = """!Packet 6B
 2B Version | 2B Header | 1B Test
