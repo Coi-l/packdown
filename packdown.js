@@ -17,6 +17,44 @@ function packdown() {
 };
 
 /***
+ * Since javascript workers cant create their own elements...
+ */
+function TextNode(text) {
+    this.text = text;
+};
+
+TextNode.prototype.getHTML = function() {
+    return this.text;
+};
+
+function Element(tag) {
+    this.tag = tag;
+    this.attributes = new Map();
+    this.children = [];
+};
+
+Element.prototype.setAttribute = function(attr, val) {
+    this.attributes.set(attr, val);
+};
+
+Element.prototype.appendChild = function(element) {
+    this.children.push(element);
+};
+
+Element.prototype.getHTML = function() {
+    var str = "<" + this.tag;
+    for (var [attr, value] of this.attributes) {
+        str += " " + attr + "='" + value + "'";
+    }
+    str += ">";
+    for (var child of this.children) {
+        str += child.getHTML();
+    }
+    str += "</" + this.tag + ">";
+    return str;
+};
+
+/***
  * Packet table renderer
  */
 function Field(description, bits) {
@@ -48,7 +86,9 @@ Field.fromString = function(str) {
     var s = str.trim();
     var split = /^(\d*)(b|B):?(S)?\s*(.*)$/;
     var parts = split.exec(s);
-    console.log(parts);
+    if (parts == null) {
+        return null;
+    }
     //Assume bits for size, check if bytes
     var bits = parseInt(parts[1]);
     if (parts[2] == 'B') {
@@ -96,8 +136,8 @@ packdown.fillRowsWithFields = function(row, rows, field, fields) {
         field.numRowspan += 1;
         field.element.setAttribute('rowspan', field.numRowspan.toString());
     } else {
-        var element = document.createElement('td');
-        element.innerHTML = description;
+        var element = new Element('td');
+        element.appendChild(new TextNode(description));
         element.setAttribute('colspan', consumedBits.toString());
         element.setAttribute('rowspan', field.numRowspan.toString());
         field.element = element;
@@ -118,13 +158,15 @@ packdown.createRows = function(totalNumBits, bitsWidth) {
         var bits = r * bitsWidth;
         var octets = bits / 8;
         var row = new Row(bitsWidth);
-        row.element = document.createElement('tr');
-        row.octetHeader = document.createElement('th');
-        row.octetHeader.appendChild(document.createTextNode("" + octets));
+        row.element = new Element('tr');
+        row.octetHeader = new Element('th');
+        //row.octetHeader.appendChild(document.createTextNode("" + octets));
+        row.octetHeader.appendChild(new TextNode("" + octets));
         row.element.appendChild(row.octetHeader);
 
-        row.bitHeader = document.createElement('th');
-        row.bitHeader.appendChild(document.createTextNode("" + bits));
+        row.bitHeader = new Element('th');
+        //row.bitHeader.appendChild(document.createTextNode("" + bits));
+        row.bitHeader.appendChild(new TextNode("" + bits));
         row.element.appendChild(row.bitHeader);
 
         rows.push(row);
@@ -139,15 +181,15 @@ packdown.createHeaders = function(bitsWidth) {
     /**
      * Create octet row header
      */
-    var octetRow = document.createElement('tr');
+    var octetRow = new Element('tr');
 
-    var offsets = document.createElement('th');
-    var offsetText = document.createTextNode('Offsets');
+    var offsets = new Element('th');
+    var offsetText = new TextNode('Offsets');
     offsets.appendChild(offsetText);
     octetRow.appendChild(offsets);
 
-    var octet = document.createElement('th');
-    var octetText = document.createTextNode('Octet');
+    var octet = new Element('th');
+    var octetText = new TextNode('Octet');
     octet.appendChild(octetText);
     octetRow.appendChild(octet);
 
@@ -156,8 +198,8 @@ packdown.createHeaders = function(bitsWidth) {
     var numBytes = bitsWidth / 8;
     var o;
     for (o = 0; o < numBytes; o++) {
-        var octet = document.createElement('th');
-        octet.appendChild(document.createTextNode(o));
+        var octet = new Element('th');
+        octet.appendChild(new TextNode(o));
         octet.setAttribute('colspan', '8');
         octetRow.appendChild(octet);
     }
@@ -167,26 +209,26 @@ packdown.createHeaders = function(bitsWidth) {
      * Create bit row header
      */
 
-    var bitRow = document.createElement('tr');
+    var bitRow = new Element('tr');
 
-    var octet = document.createElement('th');
-    octet.appendChild(document.createTextNode('Octet'));
+    var octet = new Element('th');
+    octet.appendChild(new TextNode('Octet'));
     bitRow.appendChild(octet);
 
-    var bit = document.createElement('th');
-    bit.appendChild(document.createTextNode('Bit'));
+    var bit = new Element('th');
+    bit.appendChild(new TextNode('Bit'));
     bitRow.appendChild(bit);
 
     headers.push(bitRow);
 
     var b;
     for (b = 0; b < bitsWidth; b++) {
-        bit = document.createElement('th');
+        bit = new Element('th');
         var bitText = "" + b;
         if (b < 10) {
             bitText = "\xa0" + bitText;
         }
-        bit.appendChild(document.createTextNode(bitText));
+        bit.appendChild(new TextNode(bitText));
         bitRow.appendChild(bit);
     }
 
@@ -194,7 +236,7 @@ packdown.createHeaders = function(bitsWidth) {
 }
 
 packdown.createTable = function(bitsWidth) {
-    var table = document.createElement('table');
+    var table = new Element('table');
     table.setAttribute('class', 'packdown');
     var headers = this.createHeaders(bitsWidth);
     for (let h of headers) {
@@ -204,14 +246,14 @@ packdown.createTable = function(bitsWidth) {
 };
 
 packdown.insertStyleSheet = function() {
-    var style = document.createElement('style');
+    var style = new Element('style');
     style.type = 'text/css';
-    style.appendChild(document.createTextNode(this.style));
+    style.appendChild(new TextNode(this.style));
     document.head.appendChild(style);
 };
 
 function render(token, inlineLexer) {
-    packdown.insertStyleSheet();
+    //packdown.insertStyleSheet();
     var table = packdown.createTable(token.bitWidth);
     var rows = packdown.createRows(token.sumBits, token.bitWidth);
 
@@ -227,7 +269,9 @@ function render(token, inlineLexer) {
     for (let r of rows) {
         table.appendChild(r.element);
     }
-    return table.outerHTML
+
+    var str = table.getHTML();
+    return str;
 }
 
 function extractInfoFromPacketRegexCapture(cap, inlineLexer) {
@@ -237,8 +281,10 @@ function extractInfoFromPacketRegexCapture(cap, inlineLexer) {
     var sumBits = 0;
     for (let fd of fieldDefs) {
         var f = Field.fromString(fd);
-        fields.push(f)
-        sumBits += f.bits;
+        if (f != null) {
+            fields.push(f)
+            sumBits += f.bits;
+        }
     }
 
     return { fields: fields,

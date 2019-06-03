@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>Marked in the browser</title>
+</head>
+<body>
+  <div id="content"></div>
+  <script src="../marked/lib/marked.js"></script>
+  <script src="./packdown.js"></script>
+  <script>
+    marked.registerBlockExtension(packdown.markedExtension);
+    document.getElementById('content').innerHTML =
+    marked(`# Packdown\nIs a __javascript__ packet renderer\n
+This is the IP Packet header:
+
+!Packet 4B
+4b Version | 4b IHL | 6b DSCP | 2b ECN | 2B Total Length
+2B Identification | 3b Flags | 13b Fragment Offset
+8b Time To Live | 8b Protocol | 2B Header Checksum
+4B __Source Address__
+4B Destination Address
+16B:S Options
+Packet!
+
+
+This is the TCP Packet header:
+
+!Packet 4B
+2B Source port | 2B Destination port
+4B Sequence number
+4B Acknowledgement number (if ACK set)
+3b Data offset | 3b Reserved<br>__0__ __0__ __0__
+Packet!
+
+`);
+
+  </script>
+</body>
+</html>
